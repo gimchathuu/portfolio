@@ -24,6 +24,14 @@ const Contact = () => {
         createdAt: serverTimestamp(),
         read: false
       });
+
+      // Send email via Resend API
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
       setStatus('success');
       setFormData({ name: '', email: '', message: '' });
       setTimeout(() => setStatus(''), 5000);
