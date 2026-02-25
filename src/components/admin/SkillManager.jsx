@@ -13,7 +13,8 @@ const SkillManager = () => {
         name: '',
         type: 'skill', // 'skill' or 'tool'
         color: 'text-white',
-        iconName: 'Code2'
+        iconName: 'Code2',
+        description: ''
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -56,7 +57,8 @@ const SkillManager = () => {
             name: skill.name,
             type: skill.type || 'skill',
             color: skill.color,
-            iconName: skill.iconName || 'Code2'
+            iconName: skill.iconName || 'Code2',
+            description: skill.description || ''
         });
         setCurrentId(skill.id);
         setIsEditing(true);
@@ -142,6 +144,15 @@ const SkillManager = () => {
                                         onChange={(e) => setFormData({ ...formData, iconName: e.target.value })}
                                         className="w-full bg-surface border border-white/10 rounded-xl p-3 focus:border-primary/50 outline-none"
                                         placeholder="Code2, Palette, etc."
+                                    />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-sm font-medium text-white/60 ml-1">Description</label>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="w-full bg-surface border border-white/10 rounded-xl p-3 focus:border-primary/50 outline-none min-h-[100px]"
+                                        placeholder="Briefly describe your experience with this skill..."
                                     />
                                 </div>
                             </div>

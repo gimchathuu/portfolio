@@ -7,7 +7,7 @@ import Hero from './components/Hero';
 import Experience from './components/Experience';
 import About from './components/About';
 import Education from './components/Education';
-import SkillsTools from './components/SkillsTools';
+import CircularSkills from './components/CircularSkills';
 import Projects from './components/Projects';
 import Designs from './components/Designs';
 import Certificates from './components/Certificates';
@@ -32,7 +32,7 @@ const Portfolio = () => (
     <Experience />
     <About />
     <Education />
-    <SkillsTools />
+    <CircularSkills />
     <Projects />
     <Designs />
     <Certificates />
