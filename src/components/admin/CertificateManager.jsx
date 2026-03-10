@@ -1,20 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Award, Calendar, Trash2, Edit2, Link, X } from 'lucide-react';
+import { Plus, Award, Calendar, Trash2, Edit2, Link, X, Image as ImageIcon } from 'lucide-react';
 import { getCertificates, addCertificate, updateCertificate, deleteCertificate } from '../../services/certificateService';
+
+const CertificatePreview = ({ image }) => {
+    const [isPDF, setIsPDF] = useState(false);
+    const [imageError, setImageError] = useState(false);
+
+    useEffect(() => {
+        // Check if it's likely a PDF based on URL
+        const likelyPDF = image.includes('/raw/upload/') || image.toLowerCase().endsWith('.pdf');
+        if (likelyPDF) {
+            setIsPDF(true);
+        }
+    }, [image]);
+
+    const handleImageError = () => {
+        setImageError(true);
+        setIsPDF(true);
+    };
+
+    if (isPDF) {
+        return (
+            <div className="text-center bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg p-3 border border-red-500/20">
+                <div className="bg-red-500/20 rounded-full p-2 mb-2 inline-block">
+                    <Award size={20} className="text-red-400" />
+                </div>
+                <div>
+                    <span className="text-xs font-medium text-white/70">PDF</span>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <img src={image} alt="Preview" className="w-full h-full object-cover rounded-lg" onError={handleImageError} />
+    );
+};
 
 const CertificateManager = () => {
     const [certificates, setCertificates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [currentId, setCurrentId] = useState(null);
+    const [uploading, setUploading] = useState(false);
 
     const initialFormState = {
         title: '',
         issuer: '',
         date: '',
         description: '',
-        link: ''
+        link: '',
+        image: ''
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -32,6 +69,41 @@ const CertificateManager = () => {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const uploadToCloudinary = async (file) => {
+        const data = new FormData();
+        data.append("file", file);
+        data.append("upload_preset", "dvnpwvzs");
+        data.append("folder", "certificates");
+
+        // Determine upload endpoint based on file type or extension
+        const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        const uploadUrl = isPDF
+            ? "https://api.cloudinary.com/v1_1/dv5hthm2t/raw/upload"
+            : "https://api.cloudinary.com/v1_1/dv5hthm2t/image/upload";
+
+        const res = await fetch(uploadUrl, { method: "POST", body: data });
+
+        if (!res.ok) throw new Error("Cloudinary upload failed");
+        const result = await res.json();
+        return result.secure_url;
+    };
+
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const url = await uploadToCloudinary(file);
+            setFormData(prev => ({ ...prev, image: url }));
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Image upload failed");
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -58,7 +130,8 @@ const CertificateManager = () => {
             issuer: cert.issuer,
             date: cert.date,
             description: cert.description,
-            link: cert.link || ''
+            link: cert.link || '',
+            image: cert.image || ''
         });
         setCurrentId(cert.id);
         setIsEditing(true);
@@ -159,6 +232,34 @@ const CertificateManager = () => {
                                     placeholder="Brief details about what was learned..."
                                 />
                             </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-white/60 ml-1">Certificate Image or PDF</label>
+                                <div className="flex items-center gap-4">
+                                    {formData.image && (
+                                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+                                            <CertificatePreview image={formData.image} />
+                                        </div>
+                                    )}
+                                    <div className="flex-1 relative">
+                                        <input
+                                            type="file"
+                                            accept="image/*,.pdf"
+                                            onChange={handleImageChange}
+                                            className="hidden"
+                                            id="cert-image-upload"
+                                        />
+                                        <label
+                                            htmlFor="cert-image-upload"
+                                            className={`flex items-center justify-center gap-2 w-full p-3 rounded-xl border border-dashed border-white/20 cursor-pointer hover:bg-white/5 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            <ImageIcon size={18} className="text-white/60" />
+                                            <span className="text-white/60">{uploading ? 'Uploading...' : 'Upload Certificate Image or PDF'}</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="flex justify-end gap-3 pt-4">
                                 <button
                                     type="button"
@@ -173,7 +274,8 @@ const CertificateManager = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/80 transition-colors font-medium shadow-lg shadow-primary/20"
+                                    disabled={uploading}
+                                    className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/80 transition-colors font-medium shadow-lg shadow-primary/20 disabled:opacity-50"
                                 >
                                     {currentId ? 'Update Certificate' : 'Save Certificate'}
                                 </button>
@@ -197,38 +299,45 @@ const CertificateManager = () => {
                             layout
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="bg-surface border border-white/5 p-6 rounded-2xl flex flex-col group hover:border-white/20 transition-all"
+                            className="bg-surface border border-white/5 rounded-2xl overflow-hidden flex flex-col group hover:border-white/20 transition-all"
                         >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 bg-white/5 rounded-xl text-primary-glow">
-                                    <Award size={24} />
-                                </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => handleEdit(cert)} className="p-1.5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white">
+                            {/* Certificate Image */}
+                            <div className="relative h-40 overflow-hidden bg-white/5">
+                                {cert.image ? (
+                                    <img src={cert.image} alt={cert.title} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-white/20">
+                                        <Award size={40} />
+                                    </div>
+                                )}
+                                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => handleEdit(cert)} className="p-1.5 bg-black/50 hover:bg-black/70 rounded-lg text-white backdrop-blur-md">
                                         <Edit2 size={16} />
                                     </button>
-                                    <button onClick={() => handleDelete(cert.id)} className="p-1.5 hover:bg-red-500/20 rounded-lg text-red-500 hover:text-red-400">
+                                    <button onClick={() => handleDelete(cert.id)} className="p-1.5 bg-red-500/50 hover:bg-red-500/70 rounded-lg text-white backdrop-blur-md">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
                             </div>
 
-                            <span className="text-xs font-bold text-white/30 uppercase tracking-widest mb-2">{cert.date}</span>
-                            <h3 className="text-xl font-bold mb-1 text-white/90">{cert.title}</h3>
-                            <p className="text-primary-glow font-medium text-sm mb-3">{cert.issuer}</p>
-                            <p className="text-white/50 text-sm leading-relaxed mb-4 flex-grow">{cert.description}</p>
+                            <div className="p-6 flex flex-col flex-grow">
+                                <span className="text-xs font-bold text-white/30 uppercase tracking-widest mb-2">{cert.date}</span>
+                                <h3 className="text-xl font-bold mb-1 text-white/90">{cert.title}</h3>
+                                <p className="text-primary-glow font-medium text-sm mb-3">{cert.issuer}</p>
+                                <p className="text-white/50 text-sm leading-relaxed mb-4 flex-grow">{cert.description}</p>
 
-                            {cert.link && (
-                                <a
-                                    href={cert.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-xs font-medium text-white/40 hover:text-white transition-colors"
-                                >
-                                    <Link size={14} />
-                                    Verify Credential
-                                </a>
-                            )}
+                                {cert.link && (
+                                    <a
+                                        href={cert.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-xs font-medium text-white/40 hover:text-white transition-colors"
+                                    >
+                                        <Link size={14} />
+                                        Verify Credential
+                                    </a>
+                                )}
+                            </div>
                         </motion.div>
                     ))
                 )}

@@ -29,8 +29,8 @@ const Portfolio = () => (
   <>
     <Navbar />
     <Hero />
-    <Experience />
     <About />
+    <Experience />
     <Education />
     <CircularSkills />
     <Projects />

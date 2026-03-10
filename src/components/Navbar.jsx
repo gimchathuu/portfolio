@@ -5,12 +5,9 @@ import { cn } from './utils';
 
 const navLinks = [
     { name: 'Home', href: '#home' },
-    { name: 'Experience', href: '#experience' },
     { name: 'About', href: '#about' },
-    { name: 'Education', href: '#education' },
-    { name: 'Skills', href: '#skills' },
+    { name: 'Skills', href: '#circularskills' },
     { name: 'Projects', href: '#projects' },
-    { name: 'Designs', href: '#designs' },
     { name: 'Certificates', href: '#certificates' },
     { name: 'Contact', href: '#contact' },
 ];
