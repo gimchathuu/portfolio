@@ -9,8 +9,7 @@ const CertificateDisplay = ({ image, title }) => {
     const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
-        // Check if it's likely a PDF based on URL
-        const likelyPDF = image.includes('/raw/upload/') || image.toLowerCase().endsWith('.pdf');
+        const likelyPDF = image.includes('/raw/upload/') || image.includes('/auto/upload/') || image.toLowerCase().includes('.pdf');
         if (likelyPDF) {
             setIsPDF(true);
         }

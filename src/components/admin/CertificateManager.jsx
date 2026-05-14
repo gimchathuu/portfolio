@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Award, Calendar, Trash2, Edit2, Link, X, Image as ImageIcon } from 'lucide-react';
 import { getCertificates, addCertificate, updateCertificate, deleteCertificate } from '../../services/certificateService';
+import { storage } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const CertificatePreview = ({ image }) => {
     const [isPDF, setIsPDF] = useState(false);
     const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
-        // Check if it's likely a PDF based on URL
-        const likelyPDF = image.includes('/raw/upload/') || image.toLowerCase().endsWith('.pdf');
+        const likelyPDF = image.includes('/raw/upload/') || image.includes('/auto/upload/') || image.toLowerCase().includes('.pdf');
         if (likelyPDF) {
             setIsPDF(true);
         }
@@ -74,20 +75,22 @@ const CertificateManager = () => {
 
     const uploadToCloudinary = async (file) => {
         const data = new FormData();
-        data.append("file", file);
         data.append("upload_preset", "dvnpwvzs");
         data.append("folder", "certificates");
+        data.append("file", file);
 
         // Determine upload endpoint based on file type or extension
-        const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-        const uploadUrl = isPDF
-            ? "https://api.cloudinary.com/v1_1/dv5hthm2t/raw/upload"
+        const endpoint = file.type === "application/pdf" 
+            ? "https://api.cloudinary.com/v1_1/dv5hthm2t/auto/upload" 
             : "https://api.cloudinary.com/v1_1/dv5hthm2t/image/upload";
 
-        const res = await fetch(uploadUrl, { method: "POST", body: data });
+        const res = await fetch(endpoint, { method: "POST", body: data });
 
-        if (!res.ok) throw new Error("Cloudinary upload failed");
         const result = await res.json();
+        if (!res.ok) {
+            console.error('Cloudinary detailed error:', result.error?.message || result);
+            throw new Error(`Cloudinary error: ${result.error?.message || 'Upload failed'}`);
+        }
         return result.secure_url;
     };
 
@@ -97,11 +100,20 @@ const CertificateManager = () => {
 
         setUploading(true);
         try {
-            const url = await uploadToCloudinary(file);
+            let url;
+            if (file.type === "application/pdf") {
+                // Upload PDF to Firebase Storage
+                const storageRef = ref(storage, `certificate_pdfs/${Date.now()}_${file.name}`);
+                const snapshot = await uploadBytes(storageRef, file);
+                url = await getDownloadURL(snapshot.ref);
+            } else {
+                // Upload Image to Cloudinary
+                url = await uploadToCloudinary(file);
+            }
             setFormData(prev => ({ ...prev, image: url }));
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Image upload failed");
+            alert(`Upload failed: ${error.message}`);
         } finally {
             setUploading(false);
         }

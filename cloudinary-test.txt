@@ -1,0 +1,6 @@
+﻿Testing upload with resourceType: image
+SUCCESS for image: https://res.cloudinary.com/dv5hthm2t/image/upload/v1778749846/project_pdfs/q2aqjdc8z8uvfid0jdjd.pdf
+Testing upload with resourceType: raw
+SUCCESS for raw: https://res.cloudinary.com/dv5hthm2t/raw/upload/v1778749847/project_pdfs/tqtiqpwzxvkcgqd5oymk.pdf
+Testing upload with resourceType: auto
+SUCCESS for auto: https://res.cloudinary.com/dv5hthm2t/image/upload/v1778749848/project_pdfs/bmgj0wqwqod5szrk3x7v.pdf
